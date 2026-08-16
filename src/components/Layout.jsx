@@ -6,13 +6,13 @@ const Layout = () => {
   const navigate = useNavigate();
   
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    localStorage.clear();
     navigate('/');
   };
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
-      <header className="bg-jcb-yellow text-jcb-black p-4 flex justify-between items-center shadow-md z-10">
+      <header className="bg-jcb-yellow text-jcb-black p-4 pt-[max(env(safe-area-inset-top),1rem)] flex justify-between items-center shadow-md z-10">
         <h1 className="text-xl font-bold font-sans tracking-wide">JCB DRIVER</h1>
         <button onClick={handleLogout} className="p-2">
           <LogOut size={20} />
@@ -23,7 +23,7 @@ const Layout = () => {
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-3 z-10">
+      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] z-10">
         <NavLink 
           to="/home" 
           className={({ isActive }) => `flex flex-col items-center ${isActive ? 'text-jcb-yellow' : 'text-gray-500'}`}

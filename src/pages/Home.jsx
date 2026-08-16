@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CameraCapture from '../components/CameraCapture';
 import { uploadToImgbb } from '../utils/imgbb';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Camera as CameraIcon } from 'lucide-react';
 
 const Home = () => {
   const [attendance, setAttendance] = useState(() => {
@@ -9,9 +9,12 @@ const Home = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [activeFlow, setActiveFlow] = useState('none'); // 'none', 'checkin', 'checkout'
+  const [step, setStep] = useState(1); // 1: dash, 2: person
+  
   const [cameraState, setCameraState] = useState({
     isOpen: false,
-    mode: 'none', // 'checkin-dash', 'checkin-person', 'checkout-dash', 'checkout-person'
+    mode: 'none', 
   });
   
   const [tempImages, setTempImages] = useState({});
@@ -25,63 +28,57 @@ const Home = () => {
 
   const handleCapture = async (imageSrc) => {
     const mode = cameraState.mode;
-    
-    if (mode === 'checkin-dash') {
-      setTempImages({ ...tempImages, checkinDash: imageSrc });
-      setCameraState({ isOpen: true, mode: 'checkin-person' });
-    } 
-    else if (mode === 'checkin-person') {
-      setIsProcessing(true);
-      setCameraState({ isOpen: false, mode: 'none' });
-      try {
-        const dashUrl = await uploadToImgbb(tempImages.checkinDash);
-        const personUrl = await uploadToImgbb(imageSrc);
-        
-        const newAttendance = {
-          checkInTime: new Date().toISOString(),
-          checkInImages: { dash: dashUrl, person: personUrl },
-          status: 'checked-in'
-        };
-        setAttendance(newAttendance);
-        localStorage.setItem('attendance', JSON.stringify(newAttendance));
-      } catch (err) {
-        alert("Failed to save check-in photos. Please try again.");
-      }
-      setIsProcessing(false);
-    }
-    else if (mode === 'checkout-dash') {
-      setTempImages({ ...tempImages, checkoutDash: imageSrc });
-      setCameraState({ isOpen: true, mode: 'checkout-person' });
-    }
-    else if (mode === 'checkout-person') {
-      setIsProcessing(true);
-      setCameraState({ isOpen: false, mode: 'none' });
-      try {
-        const dashUrl = await uploadToImgbb(tempImages.checkoutDash);
-        const personUrl = await uploadToImgbb(imageSrc);
-        
-        const updatedAttendance = {
-          ...attendance,
-          checkOutTime: new Date().toISOString(),
-          checkOutImages: { dash: dashUrl, person: personUrl },
-          status: 'checked-out'
-        };
-        setAttendance(updatedAttendance);
-        localStorage.setItem('attendance', JSON.stringify(updatedAttendance));
-      } catch (err) {
-        alert("Failed to save check-out photos. Please try again.");
-      }
-      setIsProcessing(false);
-    }
-  };
-
-  const startCheckIn = () => setCameraState({ isOpen: true, mode: 'checkin-dash' });
-  const startCheckOut = () => setCameraState({ isOpen: true, mode: 'checkout-dash' });
-  const cancelCamera = () => {
     setCameraState({ isOpen: false, mode: 'none' });
-    setTempImages({});
+    
+    if (mode === 'checkin-dash' || mode === 'checkout-dash') {
+      setTempImages({ ...tempImages, dash: imageSrc });
+      setStep(2);
+    } 
+    else if (mode === 'checkin-person' || mode === 'checkout-person') {
+      setTempImages({ ...tempImages, person: imageSrc });
+      
+      // Auto complete flow after person photo is taken
+      setIsProcessing(true);
+      try {
+        const dashUrl = await uploadToImgbb(tempImages.dash);
+        const personUrl = await uploadToImgbb(imageSrc);
+        
+        if (activeFlow === 'checkin') {
+          const newAttendance = {
+            checkInTime: new Date().toISOString(),
+            checkInImages: { dash: dashUrl, person: personUrl },
+            status: 'checked-in'
+          };
+          setAttendance(newAttendance);
+          localStorage.setItem('attendance', JSON.stringify(newAttendance));
+        } else if (activeFlow === 'checkout') {
+          const updatedAttendance = {
+            ...attendance,
+            checkOutTime: new Date().toISOString(),
+            checkOutImages: { dash: dashUrl, person: personUrl },
+            status: 'checked-out'
+          };
+          setAttendance(updatedAttendance);
+          localStorage.setItem('attendance', JSON.stringify(updatedAttendance));
+        }
+      } catch (err) {
+        alert("Failed to save photos. Please try again.");
+      }
+      setIsProcessing(false);
+      setActiveFlow('none');
+      setTempImages({});
+      setStep(1);
+    }
   };
 
+  const startCheckIn = () => { setActiveFlow('checkin'); setStep(1); setTempImages({}); };
+  const startCheckOut = () => { setActiveFlow('checkout'); setStep(1); setTempImages({}); };
+  const cancelFlow = () => {
+    setActiveFlow('none');
+    setTempImages({});
+    setStep(1);
+  };
+  
   const getDuration = (start, end) => {
     if (!start) return '00:00';
     const diff = (end ? new Date(end) : currentTime) - new Date(start);
@@ -96,25 +93,89 @@ const Home = () => {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  if (activeFlow !== 'none') {
+    const isCheckin = activeFlow === 'checkin';
+    return (
+      <div className="p-4 flex flex-col items-center">
+        <h2 className="text-xl font-bold mb-6 text-gray-800">
+          {isCheckin ? 'Check In Process' : 'Check Out Process'}
+        </h2>
+
+        {isProcessing && (
+          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center flex-col text-white">
+            <Loader2 className="animate-spin mb-4" size={48} />
+            <p>Saving records...</p>
+          </div>
+        )}
+
+        {cameraState.isOpen && (
+          <CameraCapture 
+            onCapture={handleCapture}
+            onCancel={() => setCameraState({ isOpen: false, mode: 'none' })}
+            facingMode={cameraState.mode.includes('dash') ? 'environment' : 'user'}
+            overlayText={cameraState.mode.includes('dash') ? '1. Vehicle dashboard (Back Camera)' : '2. User phone (Front Camera)'}
+          />
+        )}
+
+        <div className="w-full max-w-md space-y-6">
+          {/* Step 1 */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="font-bold text-gray-700 mb-2">1. Vehicle dashboard (Back Camera)</h3>
+            {!tempImages.dash ? (
+              <button 
+                onClick={() => setCameraState({ isOpen: true, mode: isCheckin ? 'checkin-dash' : 'checkout-dash' })}
+                className="w-full bg-blue-500 text-white font-bold py-4 rounded-md flex items-center justify-center space-x-2 shadow active:scale-95 transition"
+              >
+                <CameraIcon size={24} />
+                <span>Capture Dashboard</span>
+              </button>
+            ) : (
+              <div>
+                <img src={tempImages.dash} alt="Dashboard" className="w-full h-48 object-cover rounded-md border" />
+                <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">
+                  ✓ Dashboard Photo Saved
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Step 2 */}
+          {step >= 2 && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="font-bold text-gray-700 mb-2">2. User phone (Front Camera)</h3>
+              {!tempImages.person ? (
+                <button 
+                  onClick={() => setCameraState({ isOpen: true, mode: isCheckin ? 'checkin-person' : 'checkout-person' })}
+                  className="w-full bg-blue-500 text-white font-bold py-4 rounded-md flex items-center justify-center space-x-2 shadow active:scale-95 transition"
+                >
+                  <CameraIcon size={24} />
+                  <span>Capture User Phone</span>
+                </button>
+              ) : (
+                <div>
+                  <img src={tempImages.person} alt="User Phone" className="w-full h-48 object-cover rounded-md border" />
+                  <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">
+                    ✓ User Photo Saved
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button 
+            onClick={cancelFlow}
+            className="w-full border-2 border-gray-300 text-gray-700 font-bold py-4 rounded-md active:bg-gray-100 transition"
+          >
+            Cancel {isCheckin ? 'Check In' : 'Check Out'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 flex flex-col items-center">
       <h2 className="text-xl font-bold mb-6 text-gray-800">Today's Attendance</h2>
-      
-      {isProcessing && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center flex-col text-white">
-          <Loader2 className="animate-spin mb-4" size={48} />
-          <p>Saving records...</p>
-        </div>
-      )}
-
-      {cameraState.isOpen && (
-        <CameraCapture 
-          onCapture={handleCapture}
-          onCancel={cancelCamera}
-          facingMode={cameraState.mode.includes('dash') ? 'environment' : 'user'}
-          overlayText={cameraState.mode.includes('dash') ? '1. Vehicle dashboard (Back Camera)' : '2. User phone (Front Camera)'}
-        />
-      )}
 
       <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-center mb-6">
@@ -158,7 +219,7 @@ const Home = () => {
           <h3 className="font-bold text-gray-700 mb-2">Check-in Photos</h3>
           <div className="grid grid-cols-2 gap-2">
             <img src={attendance.checkInImages.dash} alt="Dashboard" className="rounded-md object-cover h-32 w-full" />
-            <img src={attendance.checkInImages.person} alt="Driver" className="rounded-md object-cover h-32 w-full" />
+            <img src={attendance.checkInImages.person} alt="User Phone" className="rounded-md object-cover h-32 w-full" />
           </div>
         </div>
       )}
@@ -168,7 +229,7 @@ const Home = () => {
           <h3 className="font-bold text-gray-700 mb-2">Check-out Photos</h3>
           <div className="grid grid-cols-2 gap-2">
             <img src={attendance.checkOutImages.dash} alt="Dashboard" className="rounded-md object-cover h-32 w-full" />
-            <img src={attendance.checkOutImages.person} alt="Driver" className="rounded-md object-cover h-32 w-full" />
+            <img src={attendance.checkOutImages.person} alt="User Phone" className="rounded-md object-cover h-32 w-full" />
           </div>
         </div>
       )}
