@@ -61,12 +61,6 @@ const Fuel = () => {
     setIsProcessing(false);
   };
 
-  const reset = () => {
-    setFuelData(null);
-    localStorage.removeItem('fuelData');
-    setStep(1);
-  };
-
   return (
     <div className="p-4 flex flex-col items-center">
       <div className="w-16 h-16 bg-jcb-yellow rounded-full flex items-center justify-center mb-4 shadow-md">
@@ -136,15 +130,6 @@ const Fuel = () => {
           </div>
         )}
 
-        {/* Complete State */}
-        {step === 3 && (
-          <button 
-            onClick={reset}
-            className="w-full border-2 border-gray-300 text-gray-700 font-bold py-4 rounded-md active:bg-gray-100 transition"
-          >
-            Start New Fuel Log
-          </button>
-        )}
       </div>
     </div>
   );

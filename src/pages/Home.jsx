@@ -112,7 +112,7 @@ const Home = () => {
           onCapture={handleCapture}
           onCancel={cancelCamera}
           facingMode={cameraState.mode.includes('dash') ? 'environment' : 'user'}
-          overlayText={cameraState.mode.includes('dash') ? 'Dashboard Photo' : 'Driver Photo'}
+          overlayText={cameraState.mode.includes('dash') ? '1. Vehicle dashboard (Back Camera)' : '2. User phone (Front Camera)'}
         />
       )}
 

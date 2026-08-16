@@ -67,7 +67,7 @@ const Maintenance = () => {
       )}
 
       <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6 mb-6">
-        <p className="text-gray-600 text-sm mb-4 text-center">Capture a photo of the repair or maintenance work completed.</p>
+        
         
         <button 
           onClick={startCapture}
