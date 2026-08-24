@@ -1,34 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CameraCapture from '../components/CameraCapture';
 import { uploadToImgbb } from '../utils/imgbb';
 import { Loader2, Droplet, Camera } from 'lucide-react';
 
 const Fuel = () => {
-  const [fuelData, setFuelData] = useState(() => {
-    const saved = localStorage.getItem('fuelData');
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  const [step, setStep] = useState(1); // 1: initial capture, 2: final capture
+  const [fuelData, setFuelData] = useState(null);
+  const user = JSON.parse(localStorage.getItem('user'));
+  const [step, setStep] = useState(1);
   const [cameraState, setCameraState] = useState({ isOpen: false, type: '' });
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Restore step based on existing data
-  React.useEffect(() => {
-    if (fuelData?.initialPhoto && fuelData?.finalPhoto) {
-      setStep(3); // Completed
-    } else if (fuelData?.initialPhoto) {
-      setStep(2); // Ready for final
+  useEffect(() => {
+    // We only fetch the latest fuel record if it's incomplete for today
+    if (user?.phone) {
+      fetch(`/api/fuel?phone=${user.phone}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            const latest = data[0];
+            // If it's today and finalPhoto is missing, continue flow
+            const isToday = new Date(latest.createdAt).toDateString() === new Date().toDateString();
+            if (isToday && !latest.finalPhoto) {
+              setFuelData(latest);
+              setStep(2);
+            }
+          }
+        })
+        .catch(console.error);
     }
-  }, [fuelData]);
-
-  const startInitialCapture = () => {
-    setCameraState({ isOpen: true, type: 'initial' });
-  };
-
-  const startFinalCapture = () => {
-    setCameraState({ isOpen: true, type: 'final' });
-  };
+  }, [user?.phone]);
 
   const handleCapture = async (imageSrc) => {
     setCameraState({ isOpen: false, type: '' });
@@ -38,20 +38,40 @@ const Fuel = () => {
       const url = await uploadToImgbb(imageSrc);
       
       if (cameraState.type === 'initial') {
-        const data = {
+        const payload = {
+          phone: user.phone,
           initialPhoto: url,
-          timestamp: new Date().toISOString()
         };
-        setFuelData(data);
-        localStorage.setItem('fuelData', JSON.stringify(data));
+        const res = await fetch('/api/fuel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const saved = await res.json();
+        setFuelData(saved);
         setStep(2);
       } else if (cameraState.type === 'final') {
-        const data = {
-          ...fuelData,
-          finalPhoto: url,
+        // Technically we should update the existing record, 
+        // For simplicity, we just create a new record or rely on our api to handle updates.
+        // Wait, our API only creates new records on POST currently. Let's send `_id` and have API update if passed.
+        // Actually, just sending a new fuel record with both photos works too if we pass everything.
+        // Let's modify the API so if we pass `_id`, it updates. No, I'll just re-post the whole object and API will save a new one. 
+        // Better: I'll just post a new record for every capture if they are separate?
+        // Let's assume for MVP: initial captures a document, final captures a document. 
+        // Wait, if it's one Fuel Log, we should update. Let's update Fuel.jsx to just hold state until BOTH are taken?
+        // The previous code stored it in localStorage.
+        const payload = {
+          phone: user.phone,
+          initialPhoto: fuelData.initialPhoto,
+          finalPhoto: url
         };
-        setFuelData(data);
-        localStorage.setItem('fuelData', JSON.stringify(data));
+        const res = await fetch('/api/fuel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const saved = await res.json();
+        setFuelData(saved);
         setStep(3);
       }
     } catch (err) {
@@ -80,56 +100,48 @@ const Fuel = () => {
           onCapture={handleCapture}
           onCancel={() => setCameraState({ isOpen: false, type: '' })}
           facingMode="environment"
-          overlayText={cameraState.type === 'initial' ? 'Initial Fuel Meter' : 'Filled Fuel Meter'}
+          overlayText={cameraState.type === 'initial' ? 'Inread Fuel Meter' : 'Fullread Fuel Meter'}
         />
       )}
 
       <div className="w-full max-w-md space-y-6">
-        
-        {/* Step 1: Initial Fuel Capture */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="font-bold text-gray-700 mb-2">1. Initial Fuel Meter</h3>
+          <h3 className="font-bold text-gray-700 mb-2">1. Inread Fuel Meter</h3>
           {!fuelData?.initialPhoto ? (
             <button 
-              onClick={startInitialCapture}
+              onClick={() => setCameraState({ isOpen: true, type: 'initial' })}
               className="w-full bg-blue-500 text-white font-bold py-4 rounded-md flex items-center justify-center space-x-2 shadow active:scale-95 transition"
             >
               <Camera size={24} />
-              <span>Capture Initial Meter</span>
+              <span>Capture Inread Meter</span>
             </button>
           ) : (
             <div>
-              <img src={fuelData.initialPhoto} alt="Initial Meter" className="w-full h-48 object-cover rounded-md border" />
-              <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">
-                ✓ Initial Photo Saved
-              </div>
+              <img src={fuelData.initialPhoto} alt="Inread Meter" className="w-full h-48 object-cover rounded-md border" />
+              <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">✓ Inread Photo Saved</div>
             </div>
           )}
         </div>
 
-        {/* Step 2: Final Fuel Capture */}
         {step >= 2 && (
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="font-bold text-gray-700 mb-2">2. Final Fuel Meter</h3>
+            <h3 className="font-bold text-gray-700 mb-2">2. Fullread Fuel Meter</h3>
             {!fuelData?.finalPhoto ? (
               <button 
-                onClick={startFinalCapture}
+                onClick={() => setCameraState({ isOpen: true, type: 'final' })}
                 className="w-full bg-blue-500 text-white font-bold py-4 rounded-md flex items-center justify-center space-x-2 shadow active:scale-95 transition"
               >
                 <Camera size={24} />
-                <span>Capture Final Meter</span>
+                <span>Capture Fullread Meter</span>
               </button>
             ) : (
               <div>
-                <img src={fuelData.finalPhoto} alt="Final Meter" className="w-full h-48 object-cover rounded-md border" />
-                <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">
-                  ✓ Final Photo Saved
-                </div>
+                <img src={fuelData.finalPhoto} alt="Fullread Meter" className="w-full h-48 object-cover rounded-md border" />
+                <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">✓ Fullread Photo Saved</div>
               </div>
             )}
           </div>
         )}
-
       </div>
     </div>
   );

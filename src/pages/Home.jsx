@@ -4,19 +4,24 @@ import { uploadToImgbb } from '../utils/imgbb';
 import { Loader2, Camera as CameraIcon } from 'lucide-react';
 
 const Home = () => {
-  const [attendance, setAttendance] = useState(() => {
-    const saved = localStorage.getItem('attendance');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [attendance, setAttendance] = useState(null);
+  const user = JSON.parse(localStorage.getItem('user'));
 
-  const [activeFlow, setActiveFlow] = useState('none'); // 'none', 'checkin', 'checkout'
-  const [step, setStep] = useState(1); // 1: dash, 2: person
-  
-  const [cameraState, setCameraState] = useState({
-    isOpen: false,
-    mode: 'none', 
-  });
-  
+  useEffect(() => {
+    if (user?.phone) {
+      const dateString = new Date().toISOString().split('T')[0];
+      fetch(`/api/attendance?phone=${user.phone}&dateString=${dateString}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0) setAttendance(data[0]);
+        })
+        .catch(err => console.error(err));
+    }
+  }, [user?.phone]);
+
+  const [activeFlow, setActiveFlow] = useState('none');
+  const [step, setStep] = useState(1);
+  const [cameraState, setCameraState] = useState({ isOpen: false, mode: 'none' });
   const [tempImages, setTempImages] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -37,30 +42,33 @@ const Home = () => {
     else if (mode === 'checkin-person' || mode === 'checkout-person') {
       setTempImages({ ...tempImages, person: imageSrc });
       
-      // Auto complete flow after person photo is taken
       setIsProcessing(true);
       try {
         const dashUrl = await uploadToImgbb(tempImages.dash);
         const personUrl = await uploadToImgbb(imageSrc);
         
+        const payload = {
+          phone: user.phone,
+        };
+
         if (activeFlow === 'checkin') {
-          const newAttendance = {
-            checkInTime: new Date().toISOString(),
-            checkInImages: { dash: dashUrl, person: personUrl },
-            status: 'checked-in'
-          };
-          setAttendance(newAttendance);
-          localStorage.setItem('attendance', JSON.stringify(newAttendance));
+          payload.checkInTime = new Date().toISOString();
+          payload.checkInImages = { dash: dashUrl, person: personUrl };
+          payload.status = 'checked-in';
         } else if (activeFlow === 'checkout') {
-          const updatedAttendance = {
-            ...attendance,
-            checkOutTime: new Date().toISOString(),
-            checkOutImages: { dash: dashUrl, person: personUrl },
-            status: 'checked-out'
-          };
-          setAttendance(updatedAttendance);
-          localStorage.setItem('attendance', JSON.stringify(updatedAttendance));
+          payload.checkOutTime = new Date().toISOString();
+          payload.checkOutImages = { dash: dashUrl, person: personUrl };
+          payload.status = 'checked-out';
         }
+
+        const res = await fetch('/api/attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const savedData = await res.json();
+        setAttendance(savedData);
+
       } catch (err) {
         alert("Failed to save photos. Please try again.");
       }
@@ -73,11 +81,7 @@ const Home = () => {
 
   const startCheckIn = () => { setActiveFlow('checkin'); setStep(1); setTempImages({}); };
   const startCheckOut = () => { setActiveFlow('checkout'); setStep(1); setTempImages({}); };
-  const cancelFlow = () => {
-    setActiveFlow('none');
-    setTempImages({});
-    setStep(1);
-  };
+  const cancelFlow = () => { setActiveFlow('none'); setTempImages({}); setStep(1); };
   
   const getDuration = (start, end) => {
     if (!start) return '00:00';
@@ -118,7 +122,6 @@ const Home = () => {
         )}
 
         <div className="w-full max-w-md space-y-6">
-          {/* Step 1 */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="font-bold text-gray-700 mb-2">1. Vehicle dashboard (Back Camera)</h3>
             {!tempImages.dash ? (
@@ -132,14 +135,11 @@ const Home = () => {
             ) : (
               <div>
                 <img src={tempImages.dash} alt="Dashboard" className="w-full h-48 object-cover rounded-md border" />
-                <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">
-                  ✓ Dashboard Photo Saved
-                </div>
+                <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">✓ Saved</div>
               </div>
             )}
           </div>
 
-          {/* Step 2 */}
           {step >= 2 && (
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="font-bold text-gray-700 mb-2">2. User phone (Front Camera)</h3>
@@ -154,18 +154,13 @@ const Home = () => {
               ) : (
                 <div>
                   <img src={tempImages.person} alt="User Phone" className="w-full h-48 object-cover rounded-md border" />
-                  <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">
-                    ✓ User Photo Saved
-                  </div>
+                  <div className="mt-2 bg-green-100 text-green-800 p-2 rounded text-sm text-center font-bold">✓ Saved</div>
                 </div>
               )}
             </div>
           )}
 
-          <button 
-            onClick={cancelFlow}
-            className="w-full border-2 border-gray-300 text-gray-700 font-bold py-4 rounded-md active:bg-gray-100 transition"
-          >
+          <button onClick={cancelFlow} className="w-full border-2 border-gray-300 text-gray-700 font-bold py-4 rounded-md active:bg-gray-100 transition">
             Cancel {isCheckin ? 'Check In' : 'Check Out'}
           </button>
         </div>
@@ -197,24 +192,17 @@ const Home = () => {
         </div>
 
         {!attendance || attendance.status === 'checked-out' ? (
-          <button 
-            onClick={startCheckIn}
-            className="w-full bg-green-500 text-white font-bold py-4 rounded-md shadow-lg active:scale-95 transition"
-          >
+          <button onClick={startCheckIn} className="w-full bg-green-500 text-white font-bold py-4 rounded-md shadow-lg active:scale-95 transition">
             CHECK IN
           </button>
         ) : (
-          <button 
-            onClick={startCheckOut}
-            className="w-full bg-red-500 text-white font-bold py-4 rounded-md shadow-lg active:scale-95 transition"
-          >
+          <button onClick={startCheckOut} className="w-full bg-red-500 text-white font-bold py-4 rounded-md shadow-lg active:scale-95 transition">
             CHECK OUT
           </button>
         )}
       </div>
       
-      {/* Display Photos if checked in/out */}
-      {attendance && attendance.checkInImages && (
+      {attendance?.checkInImages && (
         <div className="w-full max-w-md mt-4 bg-white rounded-lg p-4 shadow-sm">
           <h3 className="font-bold text-gray-700 mb-2">Check-in Photos</h3>
           <div className="grid grid-cols-2 gap-2">
@@ -224,7 +212,7 @@ const Home = () => {
         </div>
       )}
       
-      {attendance && attendance.checkOutImages && (
+      {attendance?.checkOutImages && (
         <div className="w-full max-w-md mt-4 bg-white rounded-lg p-4 shadow-sm">
           <h3 className="font-bold text-gray-700 mb-2">Check-out Photos</h3>
           <div className="grid grid-cols-2 gap-2">

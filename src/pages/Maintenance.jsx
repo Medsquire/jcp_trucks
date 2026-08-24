@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CameraCapture from '../components/CameraCapture';
 import { uploadToImgbb } from '../utils/imgbb';
 import { Loader2, Wrench, Camera } from 'lucide-react';
 
 const Maintenance = () => {
-  const [logs, setLogs] = useState(() => {
-    const saved = localStorage.getItem('maintenanceLogs');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const [logs, setLogs] = useState([]);
+  const user = JSON.parse(localStorage.getItem('user'));
   const [cameraOpen, setCameraOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const startCapture = () => {
-    setCameraOpen(true);
-  };
+  useEffect(() => {
+    if (user?.phone) {
+      fetch(`/api/maintenance?phone=${user.phone}`)
+        .then(res => res.json())
+        .then(setLogs)
+        .catch(console.error);
+    }
+  }, [user?.phone]);
 
   const handleCapture = async (imageSrc) => {
     setCameraOpen(false);
@@ -23,15 +25,20 @@ const Maintenance = () => {
     try {
       const url = await uploadToImgbb(imageSrc);
       
-      const newLog = {
-        id: Date.now(),
-        photo: url,
-        timestamp: new Date().toISOString()
+      const payload = {
+        phone: user.phone,
+        photos: [url],
+        status: 'pending'
       };
+
+      const res = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const saved = await res.json();
       
-      const updatedLogs = [newLog, ...logs];
-      setLogs(updatedLogs);
-      localStorage.setItem('maintenanceLogs', JSON.stringify(updatedLogs));
+      setLogs([saved, ...logs]);
     } catch (err) {
       alert("Failed to upload repair photo. Try again.");
     }
@@ -67,10 +74,8 @@ const Maintenance = () => {
       )}
 
       <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6 mb-6">
-        
-        
         <button 
-          onClick={startCapture}
+          onClick={() => setCameraOpen(true)}
           className="w-full bg-red-500 text-white font-bold py-4 rounded-md shadow flex justify-center items-center space-x-2 active:scale-95 transition"
         >
           <Camera size={24} />
@@ -85,9 +90,16 @@ const Maintenance = () => {
         ) : (
           <div className="space-y-4">
             {logs.map(log => (
-              <div key={log.id} className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500">
-                <p className="text-xs text-gray-500 mb-2 font-bold">{formatDate(log.timestamp)}</p>
-                <img src={log.photo} alt="Repair" className="w-full h-48 object-cover rounded-md border" />
+              <div key={log._id} className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500 flex flex-col">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-xs text-gray-500 font-bold">{formatDate(log.createdAt || new Date())}</p>
+                  <span className={`text-xs px-2 py-1 rounded font-bold ${log.status === 'resolved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {log.status?.toUpperCase() || 'PENDING'}
+                  </span>
+                </div>
+                {log.photos && log.photos.length > 0 && (
+                   <img src={log.photos[0]} alt="Repair" className="w-full h-48 object-cover rounded-md border" />
+                )}
               </div>
             ))}
           </div>

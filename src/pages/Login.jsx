@@ -1,18 +1,58 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Simulate login
-    localStorage.setItem('user', JSON.stringify({ username: phone || 'Driver_1' }));
-    navigate('/home');
+    setLoading(true);
+    setError('');
+    
+    if (!/^\d{10}$/.test(phone)) {
+      setError('Phone number must be exactly 10 digits.');
+      setLoading(false);
+      return;
+    }
+    
+    if (password.length <= 6) {
+      setError('Password must be more than 6 characters.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+      
+      localStorage.setItem('user', JSON.stringify(data));
+      
+      // roleId 1 = Admin, 2 = Supervisor, 3 = Driver
+      if (data.roleId === 1 || data.roleId === 2) {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/home');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,15 +64,20 @@ const Login = () => {
         
         <h2 className="text-xl font-bold text-gray-800 mb-8">Driver Portal</h2>
         
+        {error && <div className="w-full bg-red-100 text-red-600 p-3 mb-4 rounded text-sm font-semibold">{error}</div>}
+        
         <form onSubmit={handleLogin} className="w-full space-y-4 mb-8">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
             <input 
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
               className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-jcb-yellow"
-              placeholder="Enter phone number"
+              placeholder="Enter 10 digit phone number"
+              pattern="\d{10}"
+              maxLength="10"
+              title="Phone number must be exactly 10 digits"
               required
             />
           </div>
@@ -45,6 +90,8 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-jcb-yellow pr-10"
               placeholder="Enter password"
+              minLength="7"
+              title="Password must be more than 6 characters"
               required
             />
             <button 
@@ -58,9 +105,10 @@ const Login = () => {
 
           <button 
             type="submit"
-            className="w-full bg-jcb-yellow text-jcb-black font-bold text-lg p-4 rounded-md shadow-lg hover:bg-yellow-400 active:scale-95 transition mt-4"
+            disabled={loading}
+            className="w-full bg-jcb-yellow text-jcb-black font-bold text-lg p-4 rounded-md shadow-lg hover:bg-yellow-400 active:scale-95 transition mt-4 flex items-center justify-center"
           >
-            LOGIN
+            {loading ? <Loader2 className="animate-spin" /> : 'LOGIN'}
           </button>
         </form>
       </div>
