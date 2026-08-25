@@ -80,11 +80,15 @@ const Home = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        
+        if (!res.ok) throw new Error('Failed to save to database');
+        
         const savedData = await res.json();
         setAttendance(savedData);
+        alert(activeFlow === 'checkin' ? 'Check-in successful!' : 'Check-out successful!');
 
       } catch (err) {
-        alert("Failed to save photos. Please try again.");
+        alert("Error: Please try again. Failed to save data to database.");
       }
       setIsProcessing(false);
       setActiveFlow('none');

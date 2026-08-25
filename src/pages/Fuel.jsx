@@ -47,9 +47,13 @@ const Fuel = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        
+        if (!res.ok) throw new Error('Failed to save to database');
+        
         const saved = await res.json();
         setFuelData(saved);
         setStep(2);
+        alert('Inread photo saved successfully!');
       } else if (cameraState.type === 'final') {
         // Technically we should update the existing record, 
         // For simplicity, we just create a new record or rely on our api to handle updates.
@@ -59,7 +63,6 @@ const Fuel = () => {
         // Better: I'll just post a new record for every capture if they are separate?
         // Let's assume for MVP: initial captures a document, final captures a document. 
         // Wait, if it's one Fuel Log, we should update. Let's update Fuel.jsx to just hold state until BOTH are taken?
-        // The previous code stored it in localStorage.
         const payload = {
           phone: user.phone,
           initialPhoto: fuelData.initialPhoto,
@@ -70,12 +73,16 @@ const Fuel = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        
+        if (!res.ok) throw new Error('Failed to save to database');
+        
         const saved = await res.json();
         setFuelData(saved);
         setStep(3);
+        alert('Fullread photo saved successfully!');
       }
     } catch (err) {
-      alert("Failed to upload photo. Try again.");
+      alert("Error: Please try again. Failed to save data to database.");
     }
     
     setIsProcessing(false);

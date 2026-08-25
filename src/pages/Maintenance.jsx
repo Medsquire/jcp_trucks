@@ -36,11 +36,18 @@ const Maintenance = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const saved = await res.json();
       
+      if (!res.ok) throw new Error('Failed to save to database');
+      
+      const saved = await res.json();
       setLogs([saved, ...logs]);
+      
+      setDetails('');
+      setPhotos([]);
+      alert("Maintenance log saved successfully!");
+      
     } catch (err) {
-      alert("Failed to upload repair photo. Try again.");
+      alert("Error: Please try again. Failed to save data to database.");
     }
     
     setIsProcessing(false);

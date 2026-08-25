@@ -37,8 +37,12 @@ const Login = () => {
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.message || 'Login failed');
+        setError(data.message || 'Login failed');
+        return;
       }
+      
+      // Clear any old data from the browser (old attendance, fuel, etc)
+      localStorage.clear();
       
       localStorage.setItem('user', JSON.stringify(data));
       
