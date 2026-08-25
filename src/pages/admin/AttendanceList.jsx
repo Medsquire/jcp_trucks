@@ -39,6 +39,9 @@ const AttendanceList = () => {
               <div>
                 <p className="text-xs font-semibold text-gray-500">Check In</p>
                 <p className="text-sm">{r.checkInTime ? new Date(r.checkInTime).toLocaleTimeString() : '--:--'}</p>
+                {r.checkInLocation && (
+                  <p className="text-[10px] text-gray-400">Lat: {r.checkInLocation.lat.toFixed(4)}, Lng: {r.checkInLocation.lng.toFixed(4)}</p>
+                )}
                 <div className="flex gap-2 mt-1">
                   {r.checkInImages?.dash && (
                     <img src={r.checkInImages.dash} alt="Dash" className="w-1/2 h-20 object-cover rounded" />
@@ -51,6 +54,9 @@ const AttendanceList = () => {
               <div>
                 <p className="text-xs font-semibold text-gray-500">Check Out</p>
                 <p className="text-sm">{r.checkOutTime ? new Date(r.checkOutTime).toLocaleTimeString() : '--:--'}</p>
+                {r.checkOutLocation && (
+                  <p className="text-[10px] text-gray-400">Lat: {r.checkOutLocation.lat.toFixed(4)}, Lng: {r.checkOutLocation.lng.toFixed(4)}</p>
+                )}
                 <div className="flex gap-2 mt-1">
                   {r.checkOutImages?.dash && (
                     <img src={r.checkOutImages.dash} alt="Dash" className="w-1/2 h-20 object-cover rounded" />

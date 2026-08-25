@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     
     if (req.method === 'POST') {
       const data = req.body;
-      const { phone, checkInTime, checkOutTime, checkInImages, checkOutImages, status } = data;
+      const { phone, checkInTime, checkOutTime, checkInImages, checkOutImages, checkInLocation, checkOutLocation, status } = data;
       
       const dateString = new Date().toISOString().split('T')[0];
       
@@ -23,6 +23,8 @@ export default async function handler(req, res) {
       if (checkOutTime) attendance.checkOutTime = checkOutTime;
       if (checkInImages) attendance.checkInImages = checkInImages;
       if (checkOutImages) attendance.checkOutImages = checkOutImages;
+      if (checkInLocation) attendance.checkInLocation = checkInLocation;
+      if (checkOutLocation) attendance.checkOutLocation = checkOutLocation;
       if (status) attendance.status = status;
       
       await attendance.save();

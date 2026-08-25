@@ -10,7 +10,7 @@ async function testAll() {
   const loginRes = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: '9999999999', password: 'adminpassword' })
+    body: JSON.stringify({ phone: '9999999999', password: '1234567' })
   });
   const adminUser = await loginRes.json();
   console.log('Login Result:', adminUser.phone ? 'SUCCESS' : 'FAILED', adminUser.phone);
@@ -18,7 +18,7 @@ async function testAll() {
   const driverLoginRes = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: '7777777777', password: 'driverpassword1' })
+    body: JSON.stringify({ phone: '7777777777', password: '1234567' })
   });
   const driverUser = await driverLoginRes.json();
   console.log('Driver Login Result:', driverUser.phone ? 'SUCCESS' : 'FAILED');
@@ -32,6 +32,7 @@ async function testAll() {
       phone: driverUser.phone,
       checkInTime: new Date().toISOString(),
       checkInImages: { dash: 'dash.jpg', person: 'person.jpg' },
+      checkInLocation: { lat: 12.3456, lng: 78.9012 },
       status: 'checked-in'
     })
   });

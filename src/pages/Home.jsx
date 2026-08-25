@@ -44,8 +44,20 @@ const Home = () => {
       
       setIsProcessing(true);
       try {
-        const dashUrl = await uploadToImgbb(tempImages.dash);
-        const personUrl = await uploadToImgbb(imageSrc);
+        const getPosition = () => new Promise((resolve) => {
+          if (!navigator.geolocation) return resolve(null);
+          navigator.geolocation.getCurrentPosition(
+            pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            err => resolve(null),
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        });
+
+        const [dashUrl, personUrl, location] = await Promise.all([
+          uploadToImgbb(tempImages.dash),
+          uploadToImgbb(imageSrc),
+          getPosition()
+        ]);
         
         const payload = {
           phone: user.phone,
@@ -54,10 +66,12 @@ const Home = () => {
         if (activeFlow === 'checkin') {
           payload.checkInTime = new Date().toISOString();
           payload.checkInImages = { dash: dashUrl, person: personUrl };
+          if (location) payload.checkInLocation = location;
           payload.status = 'checked-in';
         } else if (activeFlow === 'checkout') {
           payload.checkOutTime = new Date().toISOString();
           payload.checkOutImages = { dash: dashUrl, person: personUrl };
+          if (location) payload.checkOutLocation = location;
           payload.status = 'checked-out';
         }
 
