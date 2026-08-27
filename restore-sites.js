@@ -3,10 +3,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function restoreSites() {
-  const db = await import('./api/utils/db.js');
+  const db = await import('./api/_utils/db.js');
   await db.default();
   
-  const Site = (await import('./api/models/Site.js')).default;
+  const Site = (await import('./api/_models/Site.js')).default;
   
   await Site.deleteMany({});
   

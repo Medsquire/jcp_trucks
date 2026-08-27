@@ -7,10 +7,10 @@ dotenv.config();
 const BASE_URL = 'http://localhost:3001/api';
 
 async function testSiteRadius() {
-  const db = await import('./api/utils/db.js');
+  const db = await import('./api/_utils/db.js');
   await db.default();
   
-  const Site = (await import('./api/models/Site.js')).default;
+  const Site = (await import('./api/_models/Site.js')).default;
   
   // Create a dummy site
   await Site.deleteMany({});
