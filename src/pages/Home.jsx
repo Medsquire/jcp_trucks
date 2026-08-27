@@ -112,7 +112,7 @@ const Home = () => {
   const formatTime = (isoString) => {
     if (!isoString) return '--:--';
     const d = new Date(isoString);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   if (activeFlow !== 'none') {

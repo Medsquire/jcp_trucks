@@ -8,6 +8,8 @@ import fuelHandler from './api/fuel.js';
 import maintenanceHandler from './api/maintenance.js';
 import usersHandler from './api/users.js';
 import seedHandler from './api/seed.js';
+import vehiclesHandler from './api/vehicles.js';
+import sitesHandler from './api/sites.js';
 
 const app = express();
 app.use(express.json());
@@ -28,6 +30,8 @@ app.all('/api/fuel', vercelWrapper(fuelHandler));
 app.all('/api/maintenance', vercelWrapper(maintenanceHandler));
 app.all('/api/users', vercelWrapper(usersHandler));
 app.all('/api/seed', vercelWrapper(seedHandler));
+app.all('/api/vehicles', vercelWrapper(vehiclesHandler));
+app.all('/api/sites', vercelWrapper(sitesHandler));
 
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Local API Server running on http://localhost:${PORT}`));

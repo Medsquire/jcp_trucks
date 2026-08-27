@@ -8,6 +8,8 @@ const Maintenance = () => {
   const user = JSON.parse(localStorage.getItem('user'));
   const [cameraOpen, setCameraOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [details, setDetails] = useState('');
+  const [photos, setPhotos] = useState([]);
 
   useEffect(() => {
     if (user?.phone) {
@@ -23,11 +25,25 @@ const Maintenance = () => {
     setIsProcessing(true);
     
     try {
-      const url = await uploadToImgbb(imageSrc);
+      const getPosition = () => new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          err => resolve(null),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+
+      const [uploadedUrls, location] = await Promise.all([
+        Promise.all([imageSrc].map(p => uploadToImgbb(p))),
+        getPosition()
+      ]);
       
       const payload = {
         phone: user.phone,
-        photos: [url],
+        details,
+        photos: uploadedUrls,
+        location: location,
         status: 'pending'
       };
 

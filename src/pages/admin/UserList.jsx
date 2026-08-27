@@ -5,6 +5,7 @@ const UserList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const currentUser = JSON.parse(localStorage.getItem('user'));
+  const [sites, setSites] = useState([]);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -13,15 +14,21 @@ const UserList = () => {
     name: '',
     phone: '',
     password: '',
-    roleId: 3
+    roleId: 3,
+    siteid: ''
   });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users');
+      const [res, siteRes] = await Promise.all([
+        fetch('/api/users'),
+        fetch('/api/sites')
+      ]);
       let data = await res.json();
+      const siteData = await siteRes.json();
+      setSites(siteData);
       
       // Supervisor only sees their own drivers
       if (currentUser.roleId === 2) {
@@ -48,14 +55,14 @@ const UserList = () => {
 
   const openAddModal = () => {
     setEditingUser(null);
-    setFormData({ name: '', phone: '', password: '', roleId: 3 });
+    setFormData({ name: '', phone: '', password: '', roleId: 3, siteid: '' });
     setFormError('');
     setIsModalOpen(true);
   };
 
   const openEditModal = (user) => {
     setEditingUser(user);
-    setFormData({ name: user.name || '', phone: user.phone, password: '', roleId: user.roleId });
+    setFormData({ name: user.name || '', phone: user.phone, password: '', roleId: user.roleId, siteid: user.siteid || '' });
     setFormError('');
     setIsModalOpen(true);
   };
@@ -89,12 +96,17 @@ const UserList = () => {
       return;
     }
 
+    if (payload.roleId === 2 && payload.siteid) {
+      const selectedSite = sites.find(s => s.siteid === payload.siteid);
+      payload.sitename = selectedSite ? selectedSite.sitename : '';
+    } else {
+      payload.siteid = '';
+      payload.sitename = '';
+    }
+
     // Assign supervisorPhone automatically if current user is supervisor, or if creating a driver
     if (currentUser.roleId === 2 && payload.roleId === 3) {
       payload.supervisorPhone = currentUser.phone;
-    } else if (currentUser.roleId === 1 && payload.roleId === 3 && !editingUser) {
-      // Admin creating a driver might need a supervisor, but we will leave it empty for MVP if not specified
-      // The prompt doesn't specify admin assigning supervisor, just adding driver.
     }
 
     try {
@@ -148,6 +160,9 @@ const UserList = () => {
                 <span className="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded font-semibold">{getRoleName(u.roleId)}</span>
               </div>
               <p className="text-sm text-gray-600">Phone: {u.phone}</p>
+              {u.roleId === 2 && u.sitename && (
+                <p className="text-sm text-blue-600 font-bold mt-1">📍 Site: {u.sitename}</p>
+              )}
               {u.supervisorPhone && <p className="text-sm text-gray-600">Supervisor: {u.supervisorPhone}</p>}
             </div>
           </div>
@@ -216,7 +231,7 @@ const UserList = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                   <select
                     value={formData.roleId}
-                    onChange={e => setFormData({...formData, roleId: e.target.value})}
+                    onChange={e => setFormData({...formData, roleId: Number(e.target.value)})}
                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-jcb-yellow bg-white"
                   >
                     {/* Admin can see Supervisor (2) and Driver (3) */}
@@ -226,6 +241,23 @@ const UserList = () => {
                     <option value={3}>Driver</option>
                   </select>
                 </div>
+
+                {formData.roleId === 2 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Site</label>
+                    <select
+                      value={formData.siteid}
+                      onChange={e => setFormData({...formData, siteid: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-jcb-yellow bg-white"
+                      required
+                    >
+                      <option value="" disabled>Select a site</option>
+                      {sites.map(s => (
+                        <option key={s.siteid} value={s.siteid}>{s.sitename} ({s.siteid})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="pt-4 border-t mt-6 flex justify-end">
                   <button 

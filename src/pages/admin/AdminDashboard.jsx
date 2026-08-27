@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Users, Clock, Fuel, Wrench } from 'lucide-react';
+import { Loader2, Users, Clock, Fuel, Wrench, Truck } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState({ users: 0, attendance: 0, fuel: 0, maintenance: 0 });
+  const [stats, setStats] = useState({ users: 0, attendance: 0, fuel: 0, maintenance: 0, vehicles: 0 });
   const [loading, setLoading] = useState(true);
   const user = JSON.parse(localStorage.getItem('user'));
 
@@ -10,11 +10,12 @@ const AdminDashboard = () => {
     const fetchStats = async () => {
       try {
         const query = user.roleId === 2 ? `?supervisorPhone=${user.phone}` : '';
-        const [users, attendance, fuel, maintenance] = await Promise.all([
+        const [users, attendance, fuel, maintenance, vehicles] = await Promise.all([
           fetch('/api/users').then(res => res.json()),
           fetch('/api/attendance' + query).then(res => res.json()),
           fetch('/api/fuel' + query).then(res => res.json()),
           fetch('/api/maintenance' + query).then(res => res.json()),
+          fetch('/api/vehicles').then(res => res.json()),
         ]);
 
         let filteredUsers = users;
@@ -26,7 +27,8 @@ const AdminDashboard = () => {
           users: filteredUsers.length,
           attendance: attendance.length,
           fuel: fuel.length,
-          maintenance: maintenance.length
+          maintenance: maintenance.length,
+          vehicles: vehicles.length
         });
       } catch (error) {
         console.error(error);
@@ -43,6 +45,7 @@ const AdminDashboard = () => {
 
   const cards = [
     { title: 'Total Drivers', count: stats.users, icon: <Users size={32} className="text-blue-500" />, color: 'border-blue-500' },
+    { title: 'Total Vehicles', count: stats.vehicles, icon: <Truck size={32} className="text-purple-500" />, color: 'border-purple-500' },
     { title: 'Total Attendance Logs', count: stats.attendance, icon: <Clock size={32} className="text-green-500" />, color: 'border-green-500' },
     { title: 'Total Fuel Logs', count: stats.fuel, icon: <Fuel size={32} className="text-orange-500" />, color: 'border-orange-500' },
     { title: 'Maintenance Logs', count: stats.maintenance, icon: <Wrench size={32} className="text-red-500" />, color: 'border-red-500' },

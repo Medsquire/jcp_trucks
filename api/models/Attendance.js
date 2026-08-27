@@ -14,6 +14,7 @@ const AttendanceSchema = new mongoose.Schema({
   },
   checkInLocation: { lat: Number, lng: Number },
   checkOutLocation: { lat: Number, lng: Number },
+  sitename: { type: String },
   status: { type: String },
   dateString: { type: String }, // To easily query by day
 }, { timestamps: true });

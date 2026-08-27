@@ -1,6 +1,16 @@
 import connectToDatabase from './utils/db.js';
 import Fuel from './models/Fuel.js';
 import User from './models/User.js';
+import Site from './models/Site.js';
+
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; 
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 export default async function handler(req, res) {
   try {
@@ -8,7 +18,23 @@ export default async function handler(req, res) {
     
     if (req.method === 'POST') {
       const data = req.body;
-      const fuel = new Fuel(data);
+      
+      let matchedSitename = '';
+      if (data.location && data.location.lat && data.location.lng) {
+        const sites = await Site.find();
+        for (const site of sites) {
+          const dist = getDistanceFromLatLonInKm(data.location.lat, data.location.lng, site.latitude, site.longitude);
+          if (dist <= 1) {
+            matchedSitename = site.sitename;
+            break;
+          }
+        }
+      }
+      
+      const payload = { ...data };
+      if (matchedSitename) payload.sitename = matchedSitename;
+      
+      const fuel = new Fuel(payload);
       await fuel.save();
       return res.status(200).json(fuel);
     } 
@@ -16,13 +42,32 @@ export default async function handler(req, res) {
       const filter = {};
       if (req.query.phone) filter.phone = req.query.phone;
       
+      if (req.query.dateString) {
+        // Find documents created between start and end of the specified date
+        const startDate = new Date(req.query.dateString);
+        startDate.setUTCHours(0,0,0,0);
+        const endDate = new Date(req.query.dateString);
+        endDate.setUTCHours(23,59,59,999);
+        filter.createdAt = { $gte: startDate, $lte: endDate };
+      }
+      
       if (req.query.supervisorPhone) {
         const drivers = await User.find({ supervisorPhone: req.query.supervisorPhone });
         filter.phone = { $in: drivers.map(d => d.phone) };
       }
       
-      const records = await Fuel.find(filter).sort({ createdAt: -1 });
-      return res.status(200).json(records);
+      const records = await Fuel.find(filter).sort({ createdAt: -1 }).lean();
+      
+      const allUsers = await User.find({}, 'phone name').lean();
+      const userMap = {};
+      allUsers.forEach(u => userMap[u.phone] = u.name);
+      
+      const populated = records.map(r => ({
+        ...r,
+        driverName: userMap[r.phone] || 'Unknown Driver'
+      }));
+      
+      return res.status(200).json(populated);
     }
     
     return res.status(405).end();

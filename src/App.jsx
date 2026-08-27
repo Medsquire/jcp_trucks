@@ -12,6 +12,7 @@ import UserList from './pages/admin/UserList';
 import AttendanceList from './pages/admin/AttendanceList';
 import FuelStatusList from './pages/admin/FuelStatusList';
 import MaintenanceList from './pages/admin/MaintenanceList';
+import VehicleList from './pages/admin/VehicleList';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="/admin/attendance" element={<AttendanceList />} />
           <Route path="/admin/fuel" element={<FuelStatusList />} />
           <Route path="/admin/maintenance" element={<MaintenanceList />} />
+          <Route path="/admin/vehicles" element={<VehicleList />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" />} />

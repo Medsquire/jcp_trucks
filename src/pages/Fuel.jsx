@@ -35,12 +35,25 @@ const Fuel = () => {
     setIsProcessing(true);
     
     try {
-      const url = await uploadToImgbb(imageSrc);
+      const getPosition = () => new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          err => resolve(null),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+
+      const [url, location] = await Promise.all([
+        uploadToImgbb(imageSrc),
+        getPosition()
+      ]);
       
       if (cameraState.type === 'initial') {
         const payload = {
           phone: user.phone,
           initialPhoto: url,
+          location: location
         };
         const res = await fetch('/api/fuel', {
           method: 'POST',
@@ -55,18 +68,11 @@ const Fuel = () => {
         setStep(2);
         alert('Inread photo saved successfully!');
       } else if (cameraState.type === 'final') {
-        // Technically we should update the existing record, 
-        // For simplicity, we just create a new record or rely on our api to handle updates.
-        // Wait, our API only creates new records on POST currently. Let's send `_id` and have API update if passed.
-        // Actually, just sending a new fuel record with both photos works too if we pass everything.
-        // Let's modify the API so if we pass `_id`, it updates. No, I'll just re-post the whole object and API will save a new one. 
-        // Better: I'll just post a new record for every capture if they are separate?
-        // Let's assume for MVP: initial captures a document, final captures a document. 
-        // Wait, if it's one Fuel Log, we should update. Let's update Fuel.jsx to just hold state until BOTH are taken?
         const payload = {
           phone: user.phone,
           initialPhoto: fuelData.initialPhoto,
-          finalPhoto: url
+          finalPhoto: url,
+          location: location
         };
         const res = await fetch('/api/fuel', {
           method: 'POST',
