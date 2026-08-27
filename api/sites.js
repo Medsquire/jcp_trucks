@@ -1,5 +1,5 @@
-import connectToDatabase from './utils/db.js';
-import Site from './models/Site.js';
+import connectToDatabase from './_utils/db.js';
+import Site from './_models/Site.js';
 
 export default async function handler(req, res) {
   try {
