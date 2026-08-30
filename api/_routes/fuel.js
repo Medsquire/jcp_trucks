@@ -1,7 +1,7 @@
-import connectToDatabase from './_utils/db.js';
-import Fuel from './_models/Fuel.js';
-import User from './_models/User.js';
-import Site from './_models/Site.js';
+import connectToDatabase from '../_utils/db.js';
+import Fuel from '../_models/Fuel.js';
+import User from '../_models/User.js';
+import Site from '../_models/Site.js';
 
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   const R = 6371; 

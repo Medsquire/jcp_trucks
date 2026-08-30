@@ -1,5 +1,5 @@
-import connectToDatabase from './_utils/db.js';
-import Vehicle from './_models/Vehicle.js';
+import connectToDatabase from '../_utils/db.js';
+import Vehicle from '../_models/Vehicle.js';
 
 export default async function handler(req, res) {
   try {

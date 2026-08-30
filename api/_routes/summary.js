@@ -1,9 +1,9 @@
-import connectToDatabase from './_utils/db.js';
-import User from './_models/User.js';
-import Attendance from './_models/Attendance.js';
-import Fuel from './_models/Fuel.js';
-import Maintenance from './_models/Maintenance.js';
-import Vehicle from './_models/Vehicle.js';
+import connectToDatabase from '../_utils/db.js';
+import User from '../_models/User.js';
+import Attendance from '../_models/Attendance.js';
+import Fuel from '../_models/Fuel.js';
+import Maintenance from '../_models/Maintenance.js';
+import Vehicle from '../_models/Vehicle.js';
 
 export default async function handler(req, res) {
   try {

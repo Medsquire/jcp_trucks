@@ -1,5 +1,5 @@
-import connectToDatabase from './_utils/db.js';
-import User from './_models/User.js';
+import connectToDatabase from '../_utils/db.js';
+import User from '../_models/User.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
