@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     await connectToDatabase();
     
     if (req.method === 'GET') {
-      const records = await Site.find().sort({ sitename: 1 });
+      const records = await Site.find().sort({ sitename: 1 }).lean();
       return res.status(200).json(records);
     }
     

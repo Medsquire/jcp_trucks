@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
       const locationToCheck = checkInLocation || checkOutLocation;
       if (locationToCheck && locationToCheck.lat && locationToCheck.lng) {
-        const sites = await Site.find();
+        const sites = await Site.find().lean();
         for (const site of sites) {
           const dist = getDistanceFromLatLonInKm(locationToCheck.lat, locationToCheck.lng, site.latitude, site.longitude);
           if (dist <= 1) { // 1km radius

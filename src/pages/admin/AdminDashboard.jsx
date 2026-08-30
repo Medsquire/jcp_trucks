@@ -10,26 +10,9 @@ const AdminDashboard = () => {
     const fetchStats = async () => {
       try {
         const query = user.roleId === 2 ? `?supervisorPhone=${user.phone}` : '';
-        const [users, attendance, fuel, maintenance, vehicles] = await Promise.all([
-          fetch('/api/users').then(res => res.json()),
-          fetch('/api/attendance' + query).then(res => res.json()),
-          fetch('/api/fuel' + query).then(res => res.json()),
-          fetch('/api/maintenance' + query).then(res => res.json()),
-          fetch('/api/vehicles').then(res => res.json()),
-        ]);
-
-        let filteredUsers = users;
-        if (user.roleId === 2) {
-          filteredUsers = users.filter(u => u.supervisorPhone === user.phone);
-        }
-
-        setStats({
-          users: filteredUsers.length,
-          attendance: attendance.length,
-          fuel: fuel.length,
-          maintenance: maintenance.length,
-          vehicles: vehicles.length
-        });
+        const res = await fetch('/api/summary' + query);
+        const data = await res.json();
+        setStats(data);
       } catch (error) {
         console.error(error);
       } finally {

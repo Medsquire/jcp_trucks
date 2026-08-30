@@ -10,7 +10,7 @@ export default async function handler(req, res) {
       if (req.query.roleId) filter.roleId = Number(req.query.roleId);
       if (req.query.supervisorPhone) filter.supervisorPhone = req.query.supervisorPhone;
       
-      const users = await User.find(filter).select('-password');
+      const users = await User.find(filter).select('-password').lean();
       return res.status(200).json(users);
     } 
     

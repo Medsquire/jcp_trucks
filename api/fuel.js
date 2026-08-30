@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       
       let matchedSitename = '';
       if (data.location && data.location.lat && data.location.lng) {
-        const sites = await Site.find();
+        const sites = await Site.find().lean();
         for (const site of sites) {
           const dist = getDistanceFromLatLonInKm(data.location.lat, data.location.lng, site.latitude, site.longitude);
           if (dist <= 1) {
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       }
       
       if (req.query.supervisorPhone) {
-        const drivers = await User.find({ supervisorPhone: req.query.supervisorPhone });
+        const drivers = await User.find({ supervisorPhone: req.query.supervisorPhone }).lean();
         filter.phone = { $in: drivers.map(d => d.phone) };
       }
       

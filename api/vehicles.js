@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       return res.status(200).json(vehicle);
     } 
     else if (req.method === 'GET') {
-      const records = await Vehicle.find().sort({ createdAt: -1 });
+      const records = await Vehicle.find().sort({ createdAt: -1 }).lean();
       return res.status(200).json(records);
     }
     
