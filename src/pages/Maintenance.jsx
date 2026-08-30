@@ -10,6 +10,7 @@ const Maintenance = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [details, setDetails] = useState('');
   const [photos, setPhotos] = useState([]);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (user?.phone) {
@@ -60,10 +61,13 @@ const Maintenance = () => {
       
       setDetails('');
       setPhotos([]);
-      alert("Maintenance log saved successfully!");
+      
+      setToast("Maintenance log saved successfully!");
+      setTimeout(() => setToast(null), 3000);
       
     } catch (err) {
-      alert("Error: Please try again. Failed to save data to database.");
+      setToast("Error: Please try again. Failed to save data to database.");
+      setTimeout(() => setToast(null), 3000);
     }
     
     setIsProcessing(false);
@@ -128,6 +132,12 @@ const Maintenance = () => {
           </div>
         )}
       </div>
+
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-[300] font-bold text-center transition-opacity duration-300 whitespace-nowrap">
+          {toast}
+        </div>
+      )}
     </div>
   );
 };

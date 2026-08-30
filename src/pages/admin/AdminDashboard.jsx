@@ -23,7 +23,20 @@ const AdminDashboard = () => {
   }, [user.roleId, user.phone]);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin text-jcb-yellow" size={48} /></div>;
+    return (
+      <div className="p-4">
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Dashboard</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="bg-white rounded-lg shadow-md p-4 flex flex-col items-center animate-pulse">
+              <div className="w-10 h-10 bg-gray-200 rounded-full mb-3"></div>
+              <div className="h-3 w-20 bg-gray-200 rounded mb-3"></div>
+              <div className="h-8 w-12 bg-gray-200 rounded"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const cards = [

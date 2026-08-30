@@ -9,6 +9,7 @@ const Fuel = () => {
   const [step, setStep] = useState(1);
   const [cameraState, setCameraState] = useState({ isOpen: false, type: '' });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     // We only fetch the latest fuel record if it's incomplete for today
@@ -66,7 +67,8 @@ const Fuel = () => {
         const saved = await res.json();
         setFuelData(saved);
         setStep(2);
-        alert('Inread photo saved successfully!');
+        setToast('Inread photo saved successfully!');
+        setTimeout(() => setToast(null), 3000);
       } else if (cameraState.type === 'final') {
         const payload = {
           phone: user.phone,
@@ -85,10 +87,12 @@ const Fuel = () => {
         const saved = await res.json();
         setFuelData(saved);
         setStep(3);
-        alert('Fullread photo saved successfully!');
+        setToast('Fullread photo saved successfully!');
+        setTimeout(() => setToast(null), 3000);
       }
     } catch (err) {
-      alert("Error: Please try again. Failed to save data to database.");
+      setToast("Error: Please try again. Failed to save data to database.");
+      setTimeout(() => setToast(null), 3000);
     }
     
     setIsProcessing(false);
@@ -156,6 +160,12 @@ const Fuel = () => {
           </div>
         )}
       </div>
+
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-[300] font-bold text-center transition-opacity duration-300 whitespace-nowrap">
+          {toast}
+        </div>
+      )}
     </div>
   );
 };

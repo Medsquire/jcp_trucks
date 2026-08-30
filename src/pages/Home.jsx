@@ -25,6 +25,7 @@ const Home = () => {
   const [tempImages, setTempImages] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -85,10 +86,13 @@ const Home = () => {
         
         const savedData = await res.json();
         setAttendance(savedData);
-        alert(activeFlow === 'checkin' ? 'Check-in successful!' : 'Check-out successful!');
+        
+        setToast(activeFlow === 'checkin' ? 'Check-in successful!' : 'Check-out successful!');
+        setTimeout(() => setToast(null), 3000);
 
       } catch (err) {
-        alert("Error: Please try again. Failed to save data to database.");
+        setToast("Error: Please try again. Failed to save data to database.");
+        setTimeout(() => setToast(null), 3000);
       }
       setIsProcessing(false);
       setActiveFlow('none');
@@ -103,7 +107,8 @@ const Home = () => {
   
   const getDuration = (start, end) => {
     if (!start) return '00:00';
-    const diff = (end ? new Date(end) : currentTime) - new Date(start);
+    let diff = (end ? new Date(end) : currentTime) - new Date(start);
+    if (diff < 0) diff = 0;
     const hrs = Math.floor(diff / 3600000);
     const mins = Math.floor((diff % 3600000) / 60000);
     return `${hrs.toString().padStart(2, '0')}hr : ${mins.toString().padStart(2, '0')}min`;
@@ -209,16 +214,26 @@ const Home = () => {
           </p>
         </div>
 
-        {!attendance || attendance.status === 'checked-out' ? (
+        {!attendance ? (
           <button onClick={startCheckIn} className="w-full bg-green-500 text-white font-bold py-4 rounded-md shadow-lg active:scale-95 transition">
             CHECK IN
           </button>
-        ) : (
+        ) : attendance.status === 'checked-in' ? (
           <button onClick={startCheckOut} className="w-full bg-red-500 text-white font-bold py-4 rounded-md shadow-lg active:scale-95 transition">
             CHECK OUT
           </button>
+        ) : (
+          <div className="w-full bg-gray-200 text-gray-500 font-bold py-4 rounded-md shadow text-center">
+            Completed for Today
+          </div>
         )}
       </div>
+      
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-[300] font-bold text-center transition-opacity duration-300 whitespace-nowrap">
+          {toast}
+        </div>
+      )}
       
       {attendance?.checkInImages && (
         <div className="w-full max-w-md mt-4 bg-white rounded-lg p-4 shadow-sm">
