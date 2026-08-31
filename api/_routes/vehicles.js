@@ -15,6 +15,11 @@ export default async function handler(req, res) {
       const records = await Vehicle.find().sort({ createdAt: -1 }).lean();
       return res.status(200).json(records);
     }
+    else if (req.method === 'PUT') {
+      const { _id, ...updateData } = req.body;
+      const vehicle = await Vehicle.findByIdAndUpdate(_id, updateData, { new: true });
+      return res.status(200).json(vehicle);
+    }
     
     return res.status(405).end();
   } catch (error) {

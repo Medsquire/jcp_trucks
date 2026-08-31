@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, X } from 'lucide-react';
+import { Loader2, Plus, X, Edit2 } from 'lucide-react';
 
 const VehicleList = () => {
   const [vehicles, setVehicles] = useState([]);
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   
   const [formData, setFormData] = useState({
     vehicleName: '',
@@ -35,32 +36,61 @@ const VehicleList = () => {
     fetchData();
   }, []);
 
+  const openAddModal = () => {
+    setEditingId(null);
+    setFormData({ vehicleName: '', vehicleNumber: '', siteid: '' });
+    setShowModal(true);
+  };
+
+  const openEditModal = (v) => {
+    setEditingId(v._id);
+    setFormData({ 
+      vehicleName: v.vehicleName || '', 
+      vehicleNumber: v.vehicleNumber || '', 
+      siteid: v.siteid || '' 
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Find sitename for the selected siteid
       const selectedSite = sites.find(s => s.siteid === formData.siteid);
       
       const payload = {
         ...formData,
+        vehicleNumber: formData.vehicleNumber.toUpperCase(),
         sitename: selectedSite ? selectedSite.sitename : ''
       };
 
-      const res = await fetch('/api/vehicles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      if (editingId) {
+        payload._id = editingId;
+        const res = await fetch('/api/vehicles', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to update vehicle');
+        const updatedVehicle = await res.json();
+        setVehicles(vehicles.map(v => v._id === editingId ? updatedVehicle : v));
+        alert("Vehicle updated successfully!");
+      } else {
+        const res = await fetch('/api/vehicles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to create vehicle');
+        const newVehicle = await res.json();
+        setVehicles([newVehicle, ...vehicles]);
+        alert("Vehicle added successfully!");
+      }
       
-      if (!res.ok) throw new Error('Failed to create vehicle');
-      
-      const newVehicle = await res.json();
-      setVehicles([newVehicle, ...vehicles]);
       setShowModal(false);
+      setEditingId(null);
       setFormData({ vehicleName: '', vehicleNumber: '', siteid: '' });
-      alert("Vehicle added successfully!");
     } catch (err) {
-      alert("Error adding vehicle. Please check if vehicle number is unique and try again.");
+      alert("Error saving vehicle. Please check if vehicle number is unique and try again.");
     }
   };
 
@@ -91,7 +121,7 @@ const VehicleList = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Vehicles</h2>
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={openAddModal}
           className="bg-jcb-yellow text-jcb-black font-bold py-2 px-4 rounded shadow flex items-center space-x-1"
         >
           <Plus size={20} />
@@ -101,10 +131,16 @@ const VehicleList = () => {
 
       <div className="space-y-4">
         {vehicles.map((v) => (
-          <div key={v._id} className="bg-white p-4 rounded-lg shadow">
-            <div className="flex justify-between border-b pb-2 mb-2">
-              <span className="font-bold text-lg">{v.vehicleName}</span>
-              <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm font-bold border border-gray-300">{v.vehicleNumber}</span>
+          <div key={v._id} className="bg-white p-4 rounded-lg shadow relative">
+            <button 
+              onClick={() => openEditModal(v)}
+              className="absolute top-4 right-4 text-blue-600 hover:text-blue-800 bg-blue-50 p-1.5 rounded-full"
+            >
+              <Edit2 size={16} />
+            </button>
+            <div className="border-b pb-2 mb-2 pr-8">
+              <span className="font-bold text-lg block">{v.vehicleName}</span>
+              <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm font-bold border border-gray-300 uppercase mt-1 inline-block">{v.vehicleNumber}</span>
             </div>
             {v.sitename ? (
               <p className="text-sm text-gray-600 mt-2 font-semibold">📍 {v.sitename} <span className="text-xs text-gray-400">({v.siteid})</span></p>
@@ -125,7 +161,7 @@ const VehicleList = () => {
             >
               <X size={24} />
             </button>
-            <h3 className="text-xl font-bold mb-4">Add New Vehicle</h3>
+            <h3 className="text-xl font-bold mb-4">{editingId ? 'Edit Vehicle' : 'Add New Vehicle'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Vehicle Name</label>
@@ -167,7 +203,7 @@ const VehicleList = () => {
                 type="submit"
                 className="w-full bg-blue-600 text-white font-bold py-3 rounded mt-2 shadow active:scale-95 transition"
               >
-                Save Vehicle
+                {editingId ? 'Update Vehicle' : 'Save Vehicle'}
               </button>
             </form>
           </div>
